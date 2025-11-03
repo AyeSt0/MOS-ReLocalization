@@ -81,5 +81,4 @@ MIT License © 2025 **AyeSt0**
 
 ---
 
-> *Re-forging words, rebuilding worlds — the multilingual re-localization of Sunville.*
-
+> *Re-forging words — the re-localization of *MILFs of Sunville*.*  
