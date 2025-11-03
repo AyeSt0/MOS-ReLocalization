@@ -81,5 +81,4 @@ MIT License © 2025 **AyeSt0**
 
 ---
 
-> *重铸语言，重构世界 —— Sunville 的再本地化工程。*
-
+> *重铸语言 — 《MILFs of Sunville》的再本地化。*
