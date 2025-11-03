@@ -58,7 +58,8 @@ MOS-ReLocalization/
 │   ├── extract_to_csv.py      # Extracts text and translations
 │   ├── rebuild_from_csv.py    # Rebuilds JSON from edited CSV
 │   └── utils.py               # Shared functions (if needed)
-└── README.md
+├── README.md
+└── README.zh-CN.md
 ```
 
 ---
