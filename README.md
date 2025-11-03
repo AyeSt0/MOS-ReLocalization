@@ -1,12 +1,17 @@
+<div align="center">
+
 # MOS-ReLocalization 🌐
 *A re-localization toolkit specifically made for **MILFs of Sunville**.*
 
-[🇺🇸 English](./README.md) | [🇨🇳 中文版](./README.zh-CN.md)
+[English](./README.md) | [中文](./README.zh-CN.md)
 
-![Python](https://img.shields.io/badge/Python-3.13+-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
-![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+<p>
+  <img src="https://img.shields.io/badge/Python-3.13+-blue">
+  <img src="https://img.shields.io/badge/License-MIT-green">
+  <img src="https://img.shields.io/badge/Status-Active-brightgreen">
+</p>
 
+</div>
 **MOS-ReLocalization** is a Python-based toolkit for the **re-localization** of *MILFs of Sunville* — or any game that uses JSON-based translation files.  
 It extracts multilingual data, converts them into editable CSV format for AI-assisted or manual translation, and then rebuilds updated JSON files — enabling smoother, more natural translations and greater immersion across all languages.
 
@@ -75,15 +80,4 @@ MIT License © 2025 **AyeSt0**
 ---
 
 > *Re-forging words, rebuilding worlds — the multilingual re-localization of Sunville.*
-
-
-
-
-
-
-
-
-
-
-
 
