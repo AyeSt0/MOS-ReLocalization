@@ -12,6 +12,7 @@
 </p>
 
 </div>
+
 **MOS-ReLocalization** is a Python-based toolkit for the **re-localization** of *MILFs of Sunville* — or any game that uses JSON-based translation files.  
 It extracts multilingual data, converts them into editable CSV format for AI-assisted or manual translation, and then rebuilds updated JSON files — enabling smoother, more natural translations and greater immersion across all languages.
 
