@@ -12,10 +12,9 @@
 </p>
 
 </div>
-**MOS-ReLocalization** 是一个基于 Python 的 **再本地化（Re-localization）** 工具集，  
-专为 *MILFs of Sunville* 游戏设计。  
-它可以提取多语言数据，将其导出为可编辑的 CSV 文件，用于 AI 辅助或人工翻译润色，  
-并能自动将优化后的译文重新写入 JSON 文件，从而让游戏文本更加自然流畅、更具代入感。
+
+**MOS-ReLocalization** 是一个基于 Python 的 **再本地化（Re-localization）** 工具集，专为 *MILFs of Sunville* 游戏设计。  
+它可以提取多语言数据，将其导出为可编辑的 CSV 文件，用于 AI 辅助或人工翻译润色，并能自动将优化后的译文重新写入 JSON 文件，从而让游戏文本更加自然流畅、更具代入感。
 
 ---
 
