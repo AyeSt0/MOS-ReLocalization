@@ -1,181 +1,225 @@
 import os
-import re
 import json
 import time
 import asyncio
+import hashlib
 from pathlib import Path
-from collections import Counter
 from dotenv import load_dotenv
-from openai import AsyncOpenAI
+from contextlib import asynccontextmanager
+from typing import Dict
 
-# ========= 环境 =========
+# ================== 环境配置 ==================
 load_dotenv()
 
-DATA_PATH      = Path("output/language_dict_mcsurname_fixed.json")
-LANG_MAP_PATH  = Path("data/language_map.json")
-NAMEMAP_PATH   = Path("data/name_map.json")
-OUTPUT_PATH    = Path("output/language_dict_namemap_applied.json")
-REPORT_PATH    = Path("output/namemap_apply_report.txt")
-CACHE_PATH     = Path("cache/ai_namemap_cache.json")
+DATA_PATH = Path("output/language_dict_mcsurname_fixed.json")
+LANG_MAP_PATH = Path("data/language_map.json")
+NAME_MAP_PATH = Path("data/name_map.json")
+OUTPUT_PATH = Path("output/language_dict_namemap_applied.json")
+CACHE_PATH = Path("cache/namemap_apply_cache.json")
 
-# ========= 模型 =========
+# ================== 模型配置 ==================
 DEFAULT_PROVIDER = os.getenv("MODEL_PROVIDER", "").strip().lower()
-OPENAI_API_KEY   = os.getenv("OPENAI_API_KEY", "").strip()
-OPENAI_MODEL     = os.getenv("MODEL", "gpt-4o-mini").strip()
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "").strip()
-DEEPSEEK_BASEURL = os.getenv("DEEPSEEK_BASE_URL", "https://api.siliconflow.cn").strip()
-DEEPSEEK_MODEL   = os.getenv("DEEPSEEK_MODEL", "deepseek-ai/DeepSeek-R1").strip()
+OPENAI_API_KEY   = os.getenv("OPENAI_API_KEY", "")
+OPENAI_MODEL     = os.getenv("MODEL", "gpt-4o-mini")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+DEEPSEEK_BASEURL = os.getenv("DEEPSEEK_BASE_URL", "https://api.siliconflow.cn")
+DEEPSEEK_MODEL   = os.getenv("DEEPSEEK_MODEL", "deepseek-ai/DeepSeek-R1")
 
-ASYNC_CONCURRENCY = int(os.getenv("ASYNC_CONCURRENCY", "64"))
-REQUEST_TIMEOUT   = int(os.getenv("REQUEST_TIMEOUT", "30"))
-RPM               = int(os.getenv("RPM", "1000"))
-TPM               = int(os.getenv("TPM", "100000"))
-PRINT_EVERY       = 200
+# ================== 性能参数 ==================
+ASYNC_CONCURRENCY = 60
+BATCH_FLUSH = 500
+PRINT_EVERY = 50
+REQUEST_TIMEOUT = 40
+SAVE_LOCK = asyncio.Lock()
 
-# ========= 辅助 =========
-def load_json(p, default=None):
-    if default is None: default = {}
-    return json.load(open(p, "r", encoding="utf-8")) if p.exists() else default
+# ================== 工具函数 ==================
+def load_json(path: Path, default=None):
+    if default is None:
+        default = {}
+    if not path.exists():
+        return default
+    with path.open("r", encoding="utf-8") as f:
+        return json.load(f)
 
-def save_json(p, data):
-    p.parent.mkdir(parents=True, exist_ok=True)
-    tmp = p.with_suffix(p.suffix + ".tmp")
-    with tmp.open("w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-    tmp.replace(p)
+async def async_save_json(path: Path, data):
+    """异步安全写入"""
+    async with SAVE_LOCK:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        try:
+            with tmp.open("w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            if path.exists():
+                os.remove(path)
+            os.replace(tmp, path)
+        except Exception as e:
+            print(f"⚠️ 写入 {path.name} 失败：{e}")
 
-def clean(s: str):
-    if not s: return ""
-    s = s.strip().strip("`").strip()
-    lines = [l.strip() for l in s.splitlines() if l.strip()]
-    return lines[0] if lines else ""
+def sha1(s: str) -> str:
+    return hashlib.sha1(s.encode("utf-8")).hexdigest()
 
-def pick_col(lang_map, label):
-    for k,v in lang_map.items():
-        if label.lower() in v.lower(): return int(k)
+def pick_col_by_lang(lang_map: Dict[str, str], label_contains: str) -> int:
+    for k, v in lang_map.items():
+        if v and label_contains.lower() in v.lower():
+            return int(k)
     return -1
 
-# ========= 速率控制 =========
-class RateLimiter:
-    def __init__(self, rpm, tpm):
-        self.rpm, self.tpm = rpm, tpm
-        self._window = time.monotonic()
-        self._r = 0
-        self._t = 0
-        self._lock = asyncio.Lock()
-    def _reset(self):
-        if time.monotonic()-self._window>=60:
-            self._window=time.monotonic()
-            self._r=self._t=0
-    async def acquire(self, text_len:int):
-        est = max(10, text_len//3)
-        while True:
-            async with self._lock:
-                self._reset()
-                if self._r+1<=self.rpm and self._t+est<=self.tpm:
-                    self._r+=1;self._t+=est;return
-                wait=max(0,60-(time.monotonic()-self._window))
-            await asyncio.sleep(min(wait,1))
+# ================== 模型客户端 ==================
+@asynccontextmanager
+async def build_async_client(provider: str):
+    from openai import AsyncOpenAI
+    if provider == "deepseek":
+        client = AsyncOpenAI(api_key=DEEPSEEK_API_KEY, base_url=DEEPSEEK_BASEURL)
+        model = DEEPSEEK_MODEL
+        yield client, model
+        await client.close()
+    else:
+        client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+        model = OPENAI_MODEL
+        yield client, model
+        await client.close()
 
-# ========= 异步客户端 =========
-async def build_client():
-    print("请选择引擎（1=ChatGPT，2=DeepSeek）：", end="")
-    ch = input().strip()
-    if ch=="2" or (not ch and DEFAULT_PROVIDER=="deepseek"):
-        print("🧠 使用 DeepSeek 模型引擎")
-        cli = AsyncOpenAI(api_key=DEEPSEEK_API_KEY, base_url=DEEPSEEK_BASEURL)
-        return cli, DEEPSEEK_MODEL
-    print("🧠 使用 ChatGPT 模型引擎")
-    cli = AsyncOpenAI(api_key=OPENAI_API_KEY)
-    return cli, OPENAI_MODEL
+def choose_provider():
+    print("\n请选择引擎（1=ChatGPT，2=DeepSeek）：", end="")
+    choice = input().strip()
+    if choice == "2" or (not choice and DEFAULT_PROVIDER == "deepseek"):
+        provider = "deepseek"
+    else:
+        provider = "chatgpt"
+    print(f"🧠 使用 {provider.upper()} 模型引擎")
+    return provider
 
-# ========= Prompt =========
-def build_prompt(text, name_map):
+# ================== Prompt ==================
+def build_prompt(russian: str, english: str, chinese: str, name_map: Dict[str, str]) -> str:
+    name_list = ", ".join([f"{k}:{v}" for k, v in name_map.items()])
     return f"""
-你是成人向视觉小说的中文本地化校对专家。
-下列中文翻译中可能存在前后不一致或音译错误的人名/地名/称呼。
-请根据给定的专名映射表，检查是否需要替换为更统一的说法。
+你是一名资深的本地化编辑，负责成人视觉小说的中文译文一致性修正。
+请使用映射表中的专名，统一下列文本的译名，保持自然、前后一致、符合中文语境。
 
-要求：
-1. 输出仅为修正后的完整句子。
-2. 不要添加解释、标点、符号。
-3. 严格保持原句风格与语气。
+---
+映射表（节选）：
+{name_list[:4000]}
 
-专名映射表（部分示例）：
-{name_map}
+俄文原句：{russian}
+英文原句：{english}
+当前译文：{chinese}
+---
 
-中文文本：
-{text}
+规则：
+1. 输出仅为修正后的中文句子。
+2. 不添加任何解释或标点。
+3. 若无需修改，原样输出。
+4. 优化人名、地名、校名等专名译法。
 """.strip()
 
-# ========= 主流程 =========
-async def main():
-    client, model = await build_client()
-    limiter = RateLimiter(RPM, TPM)
+def clean_model_output(s: str) -> str:
+    if not s:
+        return ""
+    lines = [ln.strip() for ln in s.strip().splitlines() if ln.strip()]
+    return lines[0] if lines else ""
 
+# ================== 实时进度条 ==================
+def progress_bar(current: int, total: int, start_time: float):
+    bar_len = 30
+    filled_len = int(bar_len * current / total)
+    bar = "█" * filled_len + "-" * (bar_len - filled_len)
+    elapsed = time.monotonic() - start_time
+    speed = current / elapsed if elapsed > 0 else 0
+    remaining = (total - current) / speed if speed > 0 else 0
+    eta = time.strftime("%H:%M:%S", time.gmtime(remaining))
+    print(f"\r⏳ [{bar}] {current}/{total} | ETA: {eta} | Speed: {speed:.1f}/s", end="", flush=True)
+
+# ================== 主逻辑 ==================
+async def main_async():
+    provider = choose_provider()
+
+    # 加载文件
     data = load_json(DATA_PATH)
     lang_map = load_json(LANG_MAP_PATH)
-    name_map = load_json(NAMEMAP_PATH)
-    zh_col = pick_col(lang_map, "Chinese")
-    en_col = pick_col(lang_map, "English")
-    ru_col = pick_col(lang_map, "Russian")
-
+    name_map = load_json(NAME_MAP_PATH, default={})
+    cache = load_json(CACHE_PATH, default={})
     total = len(data)
-    print(f"✅ 载入成功：共 {total} 条，中文列={zh_col}")
 
-    # 构建反查（多对一）映射
-    inv_map = {}
-    for k,v in name_map.items():
-        if not k or not v: continue
-        inv_map.setdefault(v,set()).add(k)
+    ru_col = pick_col_by_lang(lang_map, "Russian")
+    en_col = pick_col_by_lang(lang_map, "English")
+    zh_col = pick_col_by_lang(lang_map, "Chinese")
 
-    limiter = RateLimiter(RPM, TPM)
-    sem = asyncio.Semaphore(ASYNC_CONCURRENCY)
-    modified, last = 0, time.monotonic()
+    if min(ru_col, en_col, zh_col) < 0:
+        print("❌ language_map.json 未检测到完整的 Russian / English / Chinese 列")
+        return
 
-    async def process_one(idx, key, text):
-        nonlocal modified
-        if not text.strip(): return text
-        await limiter.acquire(len(text))
-        rep = text
-        # 先本地替换
-        for src,tgt in sorted(name_map.items(),key=lambda kv:-len(kv[0])):
-            if src in rep: rep = rep.replace(src,tgt)
-        # 若仍混杂中英俄，调用AI微调
-        if re.search(r"[A-Za-zА-Яа-яЁё]", rep):
-            try:
-                resp = await client.chat.completions.create(
-                    model=model,
-                    messages=[{"role":"user","content":build_prompt(rep,list(name_map.items())[:40])}],
-                    temperature=0.4,
-                    timeout=REQUEST_TIMEOUT)
-                new = clean(resp.choices[0].message.content)
-                if new and new!=rep:
-                    rep=new; modified+=1
-            except Exception as e:
-                print(f"⚠️ {type(e).__name__}")
-        return rep
+    print(f"✅ 数据载入成功：共 {total} 条。俄文列={ru_col}，英文列={en_col}，中文列={zh_col}")
+    print(f"📘 name_map 中有 {len(name_map)} 条专名映射。")
 
-    tasks=[]
-    for i,(key,row) in enumerate(data.items(),1):
-        if len(row)<=zh_col: continue
-        text=row[zh_col]
-        tasks.append((i,key,text))
-    total=len(tasks)
-    print(f"📦 待优化 {total} 条中文翻译")
+    # 仅取含专名的行
+    keywords = list(name_map.keys())
+    print(f"🔍 检测专名：共 {len(keywords)} 个")
 
-    async def worker(i,key,text):
-        async with sem:
-            new=await process_one(i,key,text)
-            data[key][zh_col]=new
-            if i%PRINT_EVERY==0:
-                print(f"🔄 {i}/{total} 完成")
-            if i%1000==0 or time.monotonic()-last>30:
-                save_json(OUTPUT_PATH,data)
+    tasks = []
+    for i, (key, row) in enumerate(data.items(), 1):
+        if len(row) <= max(ru_col, en_col, zh_col):
+            continue
+        ru = str(row[ru_col] or "")
+        en = str(row[en_col] or "")
+        cn = str(row[zh_col] or "")
+        if not cn.strip():
+            continue
+        if any(k in ru or k in en for k in keywords):
+            tasks.append((i, key, ru, en, cn))
 
-    await asyncio.gather(*[worker(i,k,t) for i,k,t in tasks])
-    save_json(OUTPUT_PATH,data)
-    print(f"🎉 完成，修正 {modified} 条；结果已保存至 {OUTPUT_PATH}")
+    print(f"📦 待修正句子数：{len(tasks)}（仅检测英文/俄文含专名行）")
 
-if __name__=="__main__":
-    asyncio.run(main())
+    async with build_async_client(provider) as (client, model):
+        sem = asyncio.Semaphore(ASYNC_CONCURRENCY)
+        modified = 0
+        last_flush_time = time.monotonic()
+        start_time = time.monotonic()
+
+        async def worker(i: int, key: str, ru: str, en: str, cn: str):
+            nonlocal modified, last_flush_time
+            async with sem:
+                ck = sha1(f"{ru}|{en}|{cn}")
+                if ck in cache:
+                    new_cn = cache[ck]
+                else:
+                    prompt = build_prompt(ru, en, cn, name_map)
+                    try:
+                        resp = await client.chat.completions.create(
+                            model=model,
+                            messages=[
+                                {"role": "system", "content": "You are a localization editor. Output corrected Chinese only."},
+                                {"role": "user", "content": prompt}
+                            ],
+                            temperature=0.4,
+                            timeout=REQUEST_TIMEOUT
+                        )
+                        new_cn = clean_model_output(resp.choices[0].message.content)
+                        cache[ck] = new_cn
+                    except Exception as e:
+                        print(f"\n⚠️ 第{i}条出错：{type(e).__name__} → {e}")
+                        new_cn = cn
+
+                if new_cn and new_cn != cn:
+                    modified += 1
+                    data[key][zh_col] = new_cn
+                    print(f"\n🔧 修正 {i}/{len(tasks)}：{cn[:40]} → {new_cn[:40]}")
+
+                progress_bar(i, len(tasks), start_time)
+
+                if i % BATCH_FLUSH == 0 or (time.monotonic() - last_flush_time > 90):
+                    await async_save_json(OUTPUT_PATH, data)
+                    await async_save_json(CACHE_PATH, cache)
+                    last_flush_time = time.monotonic()
+                    print(f"\n💾 自动保存进度 ({i}/{len(tasks)})")
+
+        await asyncio.gather(*[worker(i, k, r, e, c) for i, (k, r, e, c) in enumerate(tasks, 1)])
+        await async_save_json(OUTPUT_PATH, data)
+        await async_save_json(CACHE_PATH, cache)
+
+    print(f"\n🎉 修正完成，共修改 {modified} 条。结果已保存至 {OUTPUT_PATH}")
+
+def main():
+    asyncio.run(main_async())
+
+if __name__ == "__main__":
+    main()
