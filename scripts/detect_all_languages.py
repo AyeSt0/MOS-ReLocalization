@@ -9,7 +9,7 @@ from langdetect import detect, DetectorFactory
 
 # ===== 配置 =====
 DATA_PATH = Path("data/language_dict.json")
-OUTPUT_PATH = Path("output/language_map.json")
+OUTPUT_PATH = Path("data/language_map.json")
 
 # ===== 初始化 =====
 DetectorFactory.seed = 0
