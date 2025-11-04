@@ -7,9 +7,14 @@
   "Гарри": "哈里",
   "HARRY": "哈里",
 
+  "Jacob": "雅各布",
+  "Джейкоб": "雅各布",
+
   "Chloe": "克洛伊",
-  "Софи": "苏菲",
+  "Хлоя": "克洛伊",
+
   "Sophie": "苏菲",
+  "Софи": "苏菲",
 
   "Emily": "艾米丽",
   "Эмили": "艾米丽",
@@ -80,6 +85,7 @@
   "Sun": "阳光",
   "Sunville": "阳光镇",
   "MILFs of Sunville": "徐娘半老",
+
   "TOWN": "城镇",
   "ГОРОД": "城镇",
   "ГОРОДОК": "城镇",
@@ -102,7 +108,73 @@
   "doggystyle": "后背位",
   "harem": "后宫",
 
+  "Henry": "亨利",
+  "Генри": "亨利",
+
+  "Walker": "沃克",
+  "Arni Walker": "阿尼·沃克",
+  "Arnie Walker": "阿尼·沃克",
+  "Арни Уокер": "阿尼·沃克",
+  "Henry Walker": "亨利·沃克",
+
+  "Sean": "肖恩",
+  "Шон": "肖恩",
+  "SEAN": "肖恩",
+  "Шону": "肖恩",
+
+  "Becky": "贝姬",
+  "Бекки": "贝姬",
+  "BECKY": "贝姬",
+  "БЕККИ": "贝姬",
+
+  "Olivia": "奥利维娅",
+  "Оливия": "奥利维娅",
+  "Оливией": "奥利维娅",
+  "Оливию": "奥利维娅",
+  "Оливии": "奥利维娅",
+
+  "Emily's mom": "艾米丽妈妈",
+  "Mrs. Wilson": "威尔逊夫人",
+  "Wilson": "威尔逊",
+
+  "Bro": "老铁",
+  "boss": "老板",
+
+  "Patreon": "Patreon",
+  "Instagram": "Ins",
+  "Insta": "Ins",
+  "ins": "Ins",
+  "instagram": "Ins",
+  "инстаграм": "Ins",
+
+  "Game Mode": "游戏模式",
+  "Local IP": "本机IP地址",
+  "Port": "端口号",
+  "Sync ID": "同步ID",
+  "sync ID": "同步ID",
+  "Lovense": "Lovense",
+  "Lovense toy": "Lovense 玩具",
+  "Lovense Remote": "Lovense 遥控",
+  "Lovense Remote app": "Lovense遥控应用程序",
+
+  "photo": "照片",
+  "gallery": "相册",
+  "wall newspaper": "墙报",
+  "college": "学院",
+  "city hall": "市政厅",
+
+  "beauty pageant": "选美大赛",
+  "candy bar": "巧克力",
+  "bro": "老铁",
+  "cop car": "警车",
+  "beach": "海滩",
+
   "[mcname]": "[mcname]",
   "[mc_name]": "[mcname]",
-  "[mcsurname]": "[mcsurname]"
+  "[mcsurname]": "[mcsurname]",
+  "mcname": "mcname",
+
+  "Rabbit point": "兔子点",
+  "Rat point": "老鼠点",
+  "RR-Meter": "兔鼠计"
 }
