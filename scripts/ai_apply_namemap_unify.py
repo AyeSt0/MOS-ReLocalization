@@ -212,7 +212,10 @@ async def main_async():
                     last_flush_time = time.monotonic()
                     print(f"\n💾 自动保存进度 ({i}/{len(tasks)})")
 
-        await asyncio.gather(*[worker(i, k, r, e, c) for i, (k, r, e, c) in enumerate(tasks, 1)])
+        # 异步执行
+        await asyncio.gather(*[worker(*task) for task in tasks])
+
+        # 最终保存
         await async_save_json(OUTPUT_PATH, data)
         await async_save_json(CACHE_PATH, cache)
 
