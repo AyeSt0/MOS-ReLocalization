@@ -273,6 +273,7 @@ async def translate_once(client, model: str, limiter: RateLimiter, provider: str
             )
             out = resp.choices[0].message.content or ""
             return clean_model_output(out)
+        # 在 translate_once 的 except Exception 块里加：
         except Exception as e:
             if "RateLimitError" in type(e).__name__ or "429" in str(e):
                 cooldown = min(60.0, 2 ** attempt)
@@ -430,8 +431,7 @@ async def main_async():
         tasks = [one_job(idx, key, ru, en) for (idx, key, ru, en) in todo]
 
         try:
-            for chunk_start in range(0, len(tasks), 5000):
-                print(f"🚀 启动任务块 {chunk_start+1} ~ {min(chunk_start+5000, len(tasks))}")
+            for chunk_start in range(0, len(tasks), 10000):
                 # 分块并发，避免过多任务一次性注入事件循环
                 chunk = tasks[chunk_start:chunk_start+10000]
                 await asyncio.gather(*chunk)
