@@ -25,8 +25,8 @@
 
   "Richardson": "理查森",
   "Professor Richardson": "理查森教授",
-  "Principal Richardson": "理查森校长",
-  "Mrs. Richardson": "理查森教授",
+  "Principal Richardson": "理查森院长",
+  "Mrs. Richardson": "理查森夫人",
   "профессора Ричардсон": "理查森教授",
   "Ричардсон": "理查森",
 
@@ -38,7 +38,7 @@
 
   "Brooks": "布鲁克斯",
   "Coach Brooks": "布鲁克斯教练",
-  "Mrs. Brooks": "布鲁克斯太太",
+  "Mrs. Brooks": "布鲁克斯夫人",
 
   "Adams": "亚当斯",
   "Mrs. Adams": "亚当斯夫人",
@@ -48,8 +48,8 @@
   "Mrs. Carrie": "凯莉夫人",
 
   "Karen": "凯伦",
-  "миссис Карен": "凯伦太太",
-  "Mrs. Karen": "凯伦太太",
+  "миссис Карен": "凯伦夫人",
+  "Mrs. Karen": "凯伦夫人",
 
   "Nicole": "妮可",
   "Николь": "妮可",
@@ -69,7 +69,7 @@
   "Сарочка": "莎拉",
 
   "Ruth": "露丝",
-  "Mrs. Ruth": "露丝太太",
+  "Mrs. Ruth": "露丝夫人",
 
   "Stacy": "斯泰西",
   "Red Stacy": "红发斯泰西",
@@ -101,7 +101,7 @@
   "PE class": "体育课",
   "locker": "储物柜",
   "locker room": "更衣室",
-  "principal's office": "校长办公室",
+  "principal's office": "院长办公室",
   "college lobby": "学院大厅",
 
   "Missionary": "传教士式",
@@ -136,16 +136,17 @@
   "Emily's mom": "艾米丽妈妈",
   "Mrs. Wilson": "威尔逊夫人",
   "Wilson": "威尔逊",
+  "'s mom": "妈妈",
 
   "Bro": "老铁",
   "boss": "老板",
 
   "Patreon": "Patreon",
-  "Instagram": "Ins",
-  "Insta": "Ins",
-  "ins": "Ins",
-  "instagram": "Ins",
-  "инстаграм": "Ins",
+  "Instagram": "Instagram",
+  "Insta": "Insta",
+  "ins": "ins",
+  "instagram": "Instagram",
+  "инстаграм": "Instagram",
 
   "Game Mode": "游戏模式",
   "Local IP": "本机IP地址",
