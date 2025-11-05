@@ -173,6 +173,15 @@
   "[mcsurname]": "[mcsurname]",
   "mcname": "mcname",
 
+  "enable": "启用",
+  "disable": "禁用",
+  "disabled": "已禁用",
+  "enabled": "已启用",
+  "Enable": "启用",
+  "Disable": "禁用",
+  "Disabled": "已禁用",
+  "Enabled": "已启用",
+
   "Rabbit point": "兔子点",
   "Rat point": "老鼠点",
   "RR-Meter": "兔鼠计"
